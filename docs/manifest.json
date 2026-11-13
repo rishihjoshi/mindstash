@@ -1,0 +1,24 @@
+{
+  "id": "./",
+  "scope": "./",
+  "lang": "en",
+  "name": "MindStash — personal microlearning",
+  "short_name": "MindStash",
+  "description": "Distill anything into bite-sized ideas, stash them, review daily.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "display_override": ["standalone"],
+  "background_color": "#0c0a09",
+  "theme_color": "#0c0a09",
+  "orientation": "portrait-primary",
+  "prefer_related_applications": false,
+  "categories": ["education", "productivity"],
+  "icons": [
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icons/icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "New stash", "short_name": "Stash", "url": "./index.html#stash" },
+    { "name": "Daily review", "short_name": "Daily", "url": "./index.html#daily" }
+  ]
+}

@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- NO viewport-fit=cover (proven fix for iOS bottom-gap); user-scalable=no for native feel -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MindStash">
+  <meta name="application-name" content="MindStash">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#0c0a09">
+  <meta name="description" content="Distill anything into bite-sized ideas, stash them, review daily.">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/svg+xml" href="./icons/icon.svg">
+  <link rel="apple-touch-icon" href="./icons/icon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap">
+  <title>MindStash</title>
+  <style>
+    :root{
+      --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
+      --header-h:60px; --nav-h:68px;
+      /* Dark editorial: warm near-black + gold (premium black+gold) */
+      --bg:#0c0a09; --surface:#1c1917; --surface-2:#292524; --field:#17140f;
+      --line:rgba(231,227,222,.10); --line-strong:rgba(231,227,222,.16);
+      --fg:#faf8f5; --fg-2:#d6d0c7; --mut:#9b938a; --faint:#6b645c;
+      --gold:#d4a017; --gold-soft:#e7c66a; --on-gold:#17120a;
+      --danger:#e2554b;
+      --font-serif:'Playfair Display',Georgia,'Times New Roman',serif;
+      --font-sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+      --font-mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;
+      --sh-card:0 1px 0 rgba(255,255,255,.03) inset, 0 8px 24px -12px rgba(0,0,0,.7);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;overflow:hidden;-webkit-text-size-adjust:100%}
+    html{overscroll-behavior:none}
+    body{
+      font-family:var(--font-sans);background:var(--bg);color:var(--fg);
+      overscroll-behavior:none;user-select:none;-webkit-font-smoothing:antialiased;
+      letter-spacing:.1px;
+    }
+    button,a,[role=button]{-webkit-tap-highlight-color:transparent;cursor:pointer}
+    :focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:6px}
+    svg{display:block;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+
+    #app{display:flex;flex-direction:column;height:100%;max-width:480px;margin:0 auto;position:relative;overflow:hidden;background:
+      radial-gradient(120% 60% at 50% -10%, rgba(212,160,23,.07), transparent 60%),var(--bg)}
+
+    /* Header — glass */
+    .app-header{
+      flex-shrink:0;padding-top:var(--safe-t);min-height:calc(var(--header-h) + var(--safe-t));
+      display:flex;align-items:flex-end;justify-content:space-between;padding:0 18px 12px;
+      border-bottom:1px solid var(--line);
+      background:rgba(12,10,9,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+      position:relative;z-index:30;
+    }
+    .brand{display:flex;align-items:center;gap:9px}
+    .brand .mark{width:26px;height:26px;color:var(--gold)}
+    .brand h1{font-family:var(--font-serif);font-size:22px;font-weight:700;letter-spacing:.2px;line-height:1}
+    .brand h1 i{font-style:italic;color:var(--gold-soft);font-weight:600}
+    .icon-btn{width:40px;height:40px;display:grid;place-items:center;background:transparent;border:1px solid transparent;border-radius:11px;color:var(--fg-2)}
+    .icon-btn:hover{background:var(--surface);border-color:var(--line)}
+    .icon-btn svg{width:20px;height:20px}
+
+    .main-content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;
+      padding:22px 18px calc(var(--nav-h) + var(--safe-b) + 28px);scroll-behavior:smooth}
+
+    /* Bottom nav — glass */
+    .bottom-nav{flex-shrink:0;height:var(--nav-h);display:flex;align-items:flex-start;padding-top:9px;position:relative;z-index:30;
+      background:rgba(23,20,16,.82);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--line)}
+    .bottom-nav::after{content:'';position:absolute;bottom:calc(-1 * var(--safe-b));left:0;right:0;height:var(--safe-b);background:inherit}
+    .bottom-nav button{flex:1;background:none;border:none;color:var(--faint);font-size:10.5px;font-weight:600;letter-spacing:.3px;
+      display:flex;flex-direction:column;align-items:center;gap:5px;padding:4px 0;position:relative;transition:color .18s}
+    .bottom-nav button svg{width:22px;height:22px}
+    .bottom-nav button.active{color:var(--gold)}
+    .bottom-nav button.active::before{content:'';position:absolute;top:-9px;width:22px;height:2px;border-radius:2px;background:var(--gold)}
+
+    /* Views */
+    .view{display:none}
+    .view.active{display:block;animation:rise .28s cubic-bezier(.2,.7,.2,1)}
+    @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+    .eyebrow{font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+    .display{font-family:var(--font-serif);font-weight:600;font-size:30px;line-height:1.08;letter-spacing:.2px;color:var(--fg)}
+    .display i{font-style:italic;color:var(--gold-soft)}
+    .lede{color:var(--mut);font-size:14px;line-height:1.6;margin-top:10px;max-width:40ch}
+    .section-head{margin-bottom:20px}
+
+    label{display:block;font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--mut);margin:20px 2px 8px}
+    textarea,input,select{width:100%;background:var(--field);border:1px solid var(--line-strong);border-radius:13px;color:var(--fg);
+      padding:14px 15px;font-size:15px;font-family:inherit;user-select:text;transition:border-color .18s,box-shadow .18s}
+    textarea::placeholder,input::placeholder{color:var(--faint)}
+    textarea:focus,input:focus,select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,160,23,.14)}
+    textarea{min-height:156px;resize:vertical;line-height:1.55}
+    select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%239b938a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 15px center}
+    .hint-text{font-size:12px;color:var(--faint);margin:7px 2px 0;line-height:1.5}
+
+    .btn{display:flex;align-items:center;justify-content:center;gap:9px;background:var(--gold);color:var(--on-gold);border:none;border-radius:13px;
+      padding:15px;font-size:15px;font-weight:700;width:100%;margin-top:18px;transition:transform .12s,filter .18s;letter-spacing:.2px}
+    .btn svg{width:18px;height:18px;stroke:currentColor}
+    .btn:hover{filter:brightness(1.06)}
+    .btn:active{transform:scale(.985)}
+    .btn:disabled{opacity:.55;filter:none}
+    .btn.sec{background:var(--surface);color:var(--fg);border:1px solid var(--line-strong)}
+    .btn.sec:hover{filter:none;border-color:var(--gold);color:var(--gold-soft)}
+    .btn.danger{background:transparent;color:var(--danger);border:1px solid rgba(226,85,75,.4)}
+    .btn.danger:hover{background:rgba(226,85,75,.1);filter:none}
+    .btns{display:flex;gap:11px}.btns .btn{margin-top:0;flex:1}
+
+    /* Topic chips */
+    .chips{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 20px}
+    .chip{font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:.6px;background:var(--surface);border:1px solid var(--line);
+      color:var(--mut);border-radius:999px;padding:8px 14px;min-height:36px;transition:.16s}
+    .chip:hover{border-color:var(--line-strong);color:var(--fg-2)}
+    .chip.active{background:var(--gold);color:var(--on-gold);border-color:var(--gold)}
+
+    /* Flip card */
+    .card{perspective:1400px;margin-bottom:13px}
+    /* grid-stacked faces: container grows to the taller face, so nothing clips */
+    .card-in{display:grid;transition:transform .55s cubic-bezier(.2,.7,.2,1);transform-style:preserve-3d}
+    .card.flipped .card-in{transform:rotateY(180deg)}
+    .face{grid-area:1/1;min-height:150px;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+      background:linear-gradient(180deg,var(--surface),#191511);border:1px solid var(--line-strong);border-radius:18px;
+      padding:18px 18px 15px;display:flex;flex-direction:column;box-shadow:var(--sh-card)}
+    .face.back{transform:rotateY(180deg);background:linear-gradient(180deg,var(--surface-2),#201c17)}
+    .topic-row{display:flex;align-items:center;gap:9px;margin-bottom:12px}
+    .topic{font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;color:var(--gold)}
+    .topic-row .rule{flex:1;height:1px;background:linear-gradient(90deg,rgba(212,160,23,.4),transparent)}
+    .idea{font-family:var(--font-serif);font-weight:600;font-size:20px;line-height:1.26;color:var(--fg);letter-spacing:.1px}
+    .detail{font-size:14.5px;color:var(--fg-2);line-height:1.6}
+    .src{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.4px;color:var(--faint);margin-top:12px;overflow-wrap:anywhere}
+    .card-foot{display:flex;align-items:center;gap:6px;margin-top:auto;padding-top:14px}
+    .card-foot .sp{flex:1}
+    .flip-hint{display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:10px;letter-spacing:.6px;color:var(--faint)}
+    .flip-hint svg{width:13px;height:13px;stroke:var(--faint)}
+    .mini{width:38px;height:38px;display:grid;place-items:center;background:transparent;border:1px solid var(--line);border-radius:10px;color:var(--mut);transition:.16s}
+    .mini svg{width:17px;height:17px;stroke:currentColor}
+    .mini:hover{border-color:var(--line-strong);color:var(--fg-2)}
+    .mini.fav.on{color:var(--gold);border-color:rgba(212,160,23,.5)}
+    .mini.fav.on svg{fill:var(--gold)}
+    .mini.del:hover{color:var(--danger);border-color:rgba(226,85,75,.45)}
+    .save-btn{display:flex;align-items:center;gap:7px;background:transparent;border:1px solid var(--gold);color:var(--gold-soft);
+      border-radius:10px;padding:9px 15px;font-size:13px;font-weight:600;font-family:var(--font-sans)}
+    .save-btn svg{width:15px;height:15px;stroke:currentColor}
+    .save-btn:hover{background:rgba(212,160,23,.1)}
+    .save-btn.done{border-color:var(--line);color:var(--mut)}
+
+    .count{font-family:var(--font-mono);font-size:11px;letter-spacing:.5px;color:var(--mut);font-variant-numeric:tabular-nums;margin:0 2px 16px}
+
+    /* Empty state */
+    .empty{text-align:center;padding:44px 24px;color:var(--mut)}
+    .empty .glyph{width:52px;height:52px;margin:0 auto 18px;color:var(--faint);opacity:.8}
+    .empty .glyph svg{width:100%;height:100%;stroke-width:1.3}
+    .empty h3{font-family:var(--font-serif);font-size:20px;font-weight:600;color:var(--fg-2);margin-bottom:7px}
+    .empty p{font-size:13.5px;line-height:1.6;max-width:30ch;margin:0 auto}
+
+    .err{background:rgba(226,85,75,.1);border:1px solid rgba(226,85,75,.35);color:#f0a59e;font-size:13.5px;line-height:1.5;
+      border-radius:12px;padding:13px 15px;margin-top:16px;white-space:pre-wrap;user-select:text}
+    .toast{font-family:var(--font-mono);font-size:11px;letter-spacing:.5px;color:var(--gold-soft);margin-top:12px;min-height:16px}
+
+    /* Loading */
+    .spin{width:17px;height:17px;border:2px solid var(--on-gold);border-top-color:transparent;border-radius:50%;animation:sp .7s linear infinite}
+    @keyframes sp{to{transform:rotate(360deg)}}
+    .skeleton{height:150px;border-radius:18px;margin-bottom:13px;border:1px solid var(--line);
+      background:linear-gradient(100deg,var(--surface) 30%,var(--surface-2) 50%,var(--surface) 70%);background-size:220% 100%;animation:sh 1.3s infinite}
+    @keyframes sh{to{background-position:-180% 0}}
+
+    .settings-note{font-size:13px;color:var(--mut);line-height:1.65;margin-top:22px;padding-top:20px;border-top:1px solid var(--line)}
+    .settings-note a{color:var(--gold-soft)}
+
+    @media (min-width:481px){body{background:#060504}#app{border-left:1px solid var(--line);border-right:1px solid var(--line)}}
+    @media (min-width:900px){body{display:flex;align-items:center;justify-content:center}
+      #app{height:min(920px,96vh);border-radius:22px;border:1px solid var(--line);box-shadow:0 40px 120px -40px rgba(0,0,0,.9)}}
+
+    @media (prefers-reduced-motion:reduce){
+      *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <header class="app-header">
+      <div class="brand">
+        <svg class="mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M12 3C8.5 3 6 5.6 6 9c0 2.2 1.1 3.9 2.6 5 .7.5 1 1 1 1.8v.2h4.8v-.2c0-.8.3-1.3 1-1.8C16.9 12.9 18 11.2 18 9c0-3.4-2.5-6-6-6Z"/><path d="M10 20h4M10.6 17.5h2.8"/></svg>
+        <h1>Mind<i>Stash</i></h1>
+      </div>
+      <button class="icon-btn" id="hdr-action" aria-label="Daily review">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="m12 3 1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3Z"/></svg>
+      </button>
+    </header>
+
+    <main class="main-content">
+      <!-- STASH -->
+      <section class="view" id="v-stash" aria-labelledby="stash-h">
+        <div class="section-head">
+          <div class="eyebrow">Distill</div>
+          <h2 class="display" id="stash-h">Turn noise into <i>signal.</i></h2>
+          <p class="lede">Paste an article, your notes, or just a topic. Claude breaks it into a handful of ideas worth keeping.</p>
+        </div>
+        <label for="src">Source — optional</label>
+        <input id="src" placeholder="Atomic Habits — James Clear" autocomplete="off">
+        <label for="text">What should I distill?</label>
+        <textarea id="text" placeholder="Paste text or notes here — or type a topic like “how to focus deeply”…"></textarea>
+        <p class="hint-text" id="char-hint"></p>
+        <button class="btn" id="distill">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="m12 3 1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3Z"/></svg>
+          <span>Distill into ideas</span>
+        </button>
+        <div class="err" id="stash-err" hidden></div>
+        <div id="results" style="margin-top:22px"></div>
+      </section>
+
+      <!-- LIBRARY -->
+      <section class="view" id="v-library" aria-labelledby="lib-h">
+        <div class="section-head"><div class="eyebrow">Collected</div><h2 class="display" id="lib-h">Your <i>library.</i></h2></div>
+        <div class="count" id="lib-count"></div>
+        <div class="chips" id="lib-chips"></div>
+        <div id="lib-cards"></div>
+      </section>
+
+      <!-- DAILY -->
+      <section class="view" id="v-daily" aria-labelledby="daily-h">
+        <div class="section-head"><div class="eyebrow">Review</div><h2 class="display" id="daily-h">A few, <i>on purpose.</i></h2>
+          <p class="lede">A small, shuffled set from your library — the antidote to doomscrolling.</p></div>
+        <div id="daily-cards"></div>
+        <button class="btn sec" id="daily-shuffle" style="margin-top:4px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>
+          <span>Shuffle again</span>
+        </button>
+      </section>
+
+      <!-- SETTINGS -->
+      <section class="view" id="v-settings" aria-labelledby="set-h">
+        <div class="section-head"><div class="eyebrow">Setup</div><h2 class="display" id="set-h">Settings.</h2></div>
+        <label for="key">Anthropic API key</label>
+        <input id="key" type="password" placeholder="sk-ant-…" autocomplete="off" spellcheck="false">
+        <p class="hint-text">Stored only in this browser. Never sent anywhere except Anthropic’s API.</p>
+        <label for="model">Model</label>
+        <select id="model">
+          <option value="claude-haiku-4-5-20251001">Haiku 4.5 — fast &amp; economical</option>
+          <option value="claude-sonnet-5-5">Sonnet 5.5 — sharper, pricier</option>
+        </select>
+        <button class="btn" id="save-settings"><span>Save settings</span></button>
+        <div class="toast" id="set-msg" role="status" aria-live="polite"></div>
+        <label>Your data</label>
+        <div class="btns">
+          <button class="btn sec" id="export">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>
+            <span>Export</span>
+          </button>
+          <button class="btn danger" id="wipe">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            <span>Erase all</span>
+          </button>
+        </div>
+        <p class="settings-note">Everything lives on this device. Get a key at <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a>.</p>
+      </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="Primary">
+      <button data-view="stash" class="active" aria-label="Stash">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Stash</button>
+      <button data-view="library" aria-label="Library">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>Library</button>
+      <button data-view="daily" aria-label="Daily">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="m12 3 1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3Z"/></svg>Daily</button>
+      <button data-view="settings" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>Settings</button>
+    </nav>
+  </div>
+
+  <script type="module">
+    import { extractIdeas, TOPICS } from './extract.js';
+
+    const $ = s => document.querySelector(s);
+    const KEY='ds_key', MODEL='ds_model', DB='ds_ideas', MAX_INPUT=20000;
+
+    // SVG icon strings (Lucide-style, stroke=currentColor) — no emoji
+    const ICON={
+      plus:'<path d="M12 5v14M5 12h14"/>',
+      check:'<path d="M20 6 9 17l-5-5"/>',
+      star:'<polygon points="12 2 15.1 8.3 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 8.9 8.3 12 2"/>',
+      trash:'<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+      flip:'<path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/>',
+      book:'<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/>',
+      spark:'<path d="m12 3 1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3Z"/>',
+    };
+    const svg = (name,cls='') => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">${ICON[name]}</svg>`;
+    const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+    const loadAll = () => { try { return JSON.parse(localStorage.getItem(DB)||'[]'); } catch { return []; } };
+    const saveAll = a => localStorage.setItem(DB, JSON.stringify(a));
+    const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()+Math.random()));
+
+    // ---- navigation ----
+    function show(view){
+      document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active', v.id==='v-'+view));
+      document.querySelectorAll('.bottom-nav button').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
+      $('.main-content').scrollTop=0;
+      if(view==='library') renderLibrary();
+      if(view==='daily') renderDaily();
+    }
+    document.querySelectorAll('.bottom-nav button').forEach(b=>b.onclick=()=>show(b.dataset.view));
+    $('#hdr-action').onclick=()=>show('daily');
+
+    // ---- Claude call (model reply validated at the extract.js boundary) ----
+    async function callWithRetry(fn, max=2){
+      for(let i=0;i<=max;i++){
+        const res=await fn();
+        if(res.status===429 && i<max){ await new Promise(r=>setTimeout(r,2**i*1000)); continue; }
+        return res;
+      }
+    }
+    const friendlyError = (status, body) => ({
+      401:'That API key was rejected. Check it in Settings.',
+      403:'This key isn’t allowed to use the Messages API.',
+      429:'Rate limited by Anthropic. Wait a moment and retry.',
+      500:'Anthropic had a server error. Try again shortly.',
+      529:'Anthropic is overloaded right now. Try again shortly.',
+    }[status] || `Request failed (${status}). ${String(body).slice(0,160)}`);
+
+    async function distill(text, label){
+      const key=localStorage.getItem(KEY);
+      if(!key) throw new Error('Add your Anthropic API key in Settings first.');
+      if(text.length>MAX_INPUT) text=text.slice(0,MAX_INPUT); // guard input at the boundary
+      const model=localStorage.getItem(MODEL)||'claude-haiku-4-5-20251001';
+      const system=`You turn input into atomic, memorable insights ("stashes"), like Deepstash.
+Return ONLY a JSON array (no prose, no markdown) of 3 to 8 objects.
+Each object: {"idea": punchy standalone takeaway, max ~90 chars, "detail": 1-2 sentence explanation, "topic": exactly one of ${JSON.stringify(TOPICS)}}.
+Prefer non-obvious, high-signal ideas. If the input is just a topic, generate the best known ideas about it.`;
+      const user = label ? `Source: ${label}\n\n${text}` : text;
+      const res=await callWithRetry(()=>fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+        body:JSON.stringify({model,max_tokens:1600,system,messages:[{role:'user',content:user}]})
+      }));
+      if(!res.ok){ throw new Error(friendlyError(res.status, await res.text().catch(()=>''))); }
+      const data=await res.json();
+      const out=(data.content||[]).map(b=>b.text||'').join('');
+      const ideas=extractIdeas(out);
+      if(!ideas.length) throw new Error('Could not parse any ideas from the reply. Try again or shorten the input.');
+      return ideas;
+    }
+
+    // ---- card rendering ----
+    function cardEl(o, {mode}={}){ // mode: 'result' | 'saved' | 'review'
+      const el=document.createElement('div'); el.className='card';
+      let foot='';
+      if(mode==='result') foot=`<div class="card-foot"><span class="flip-hint">${svg('flip')}flip</span><span class="sp"></span><button class="save-btn">${svg('plus')}<span>Save</span></button></div>`;
+      else if(mode==='saved') foot=`<div class="card-foot"><span class="flip-hint">${svg('flip')}flip</span><span class="sp"></span><button class="mini fav ${o.fav?'on':''}" aria-label="Favourite">${svg('star')}</button><button class="mini del" aria-label="Delete">${svg('trash')}</button></div>`;
+      else foot=`<div class="card-foot"><span class="flip-hint">${svg('flip')}tap to flip</span></div>`;
+      const back=`<div class="face back"><div class="topic-row"><span class="topic">${esc(o.topic)}</span><span class="rule"></span></div><div class="detail">${esc(o.detail)||'No detail provided.'}</div>${o.source?`<div class="src">${esc(o.source)}</div>`:''}</div>`;
+      el.innerHTML=`<div class="card-in">
+        <div class="face"><div class="topic-row"><span class="topic">${esc(o.topic)}</span><span class="rule"></span></div><div class="idea">${esc(o.idea)}</div>${foot}</div>
+        ${back}</div>`;
+      el.querySelector('.card-in').addEventListener('click',e=>{ if(e.target.closest('button')) return; el.classList.toggle('flipped'); });
+      return el;
+    }
+    const emptyEl = (icon,title,body) => `<div class="empty"><div class="glyph">${svg(icon)}</div><h3>${title}</h3><p>${body}</p></div>`;
+
+    // ---- STASH ----
+    const charHint=$('#char-hint');
+    $('#text').addEventListener('input',e=>{ const n=e.target.value.length; charHint.textContent = n>MAX_INPUT? `Too long — only the first ${MAX_INPUT.toLocaleString()} characters will be used.` : ''; });
+    $('#distill').onclick=async()=>{
+      const btn=$('#distill'), text=$('#text').value.trim(), label=$('#src').value.trim();
+      $('#stash-err').hidden=true; $('#results').innerHTML='';
+      if(!text){ $('#text').focus(); return; }
+      btn.disabled=true; btn.innerHTML='<span class="spin"></span><span>Distilling…</span>';
+      $('#results').innerHTML='<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>';
+      try{
+        const ideas=await distill(text,label);
+        $('#results').innerHTML='';
+        ideas.forEach(o=>{
+          const data={...o,source:label};
+          const el=cardEl(data,{mode:'result'});
+          el.querySelector('.save-btn').onclick=(e)=>{
+            const all=loadAll();
+            all.unshift({id:uid(),idea:o.idea,detail:o.detail,topic:o.topic,source:label,fav:false,savedAt:Date.now()});
+            saveAll(all);
+            const b=e.currentTarget; b.classList.add('done'); b.innerHTML=`${svg('check')}<span>Saved</span>`; b.disabled=true;
+          };
+          $('#results').appendChild(el);
+        });
+      }catch(err){ $('#results').innerHTML=''; $('#stash-err').textContent=err.message; $('#stash-err').hidden=false; }
+      finally{ btn.disabled=false; btn.innerHTML=`${svg('spark')}<span>Distill into ideas</span>`; }
+    };
+
+    // ---- LIBRARY ----
+    let libFilter='All';
+    function renderLibrary(){
+      const all=loadAll();
+      $('#lib-count').textContent = all.length ? `${all.length} idea${all.length>1?'s':''} stashed` : '';
+      const chips=$('#lib-chips'); chips.innerHTML='';
+      if(all.length){
+        ['All', ...Array.from(new Set(all.map(o=>o.topic)))].forEach(t=>{
+          const c=document.createElement('button'); c.className='chip'+(t===libFilter?' active':''); c.textContent=t;
+          c.onclick=()=>{ libFilter=t; renderLibrary(); }; chips.appendChild(c);
+        });
+      }
+      const wrap=$('#lib-cards'); wrap.innerHTML='';
+      const items=all.filter(o=>libFilter==='All'||o.topic===libFilter);
+      if(!items.length){ wrap.innerHTML=emptyEl('book','Nothing stashed yet','Distill something in the Stash tab and your ideas will collect here.'); return; }
+      items.forEach(o=>{
+        const el=cardEl(o,{mode:'saved'});
+        el.querySelector('.fav').onclick=()=>{ const a=loadAll(); const it=a.find(x=>x.id===o.id); if(it){it.fav=!it.fav; saveAll(a); renderLibrary();} };
+        el.querySelector('.del').onclick=()=>{ saveAll(loadAll().filter(x=>x.id!==o.id)); renderLibrary(); };
+        wrap.appendChild(el);
+      });
+    }
+
+    // ---- DAILY ----
+    function renderDaily(){
+      const all=loadAll(), wrap=$('#daily-cards');
+      if(!all.length){ wrap.innerHTML=emptyEl('spark','No ideas to review','Stash a few ideas first, then come back for a daily set.'); $('#daily-shuffle').style.display='none'; return; }
+      $('#daily-shuffle').style.display='';
+      wrap.innerHTML='';
+      [...all].sort(()=>Math.random()-0.5).slice(0,Math.min(5,all.length)).forEach(o=>wrap.appendChild(cardEl(o,{mode:'review'})));
+    }
+    $('#daily-shuffle').onclick=renderDaily;
+
+    // ---- SETTINGS ----
+    $('#key').value=localStorage.getItem(KEY)||'';
+    $('#model').value=localStorage.getItem(MODEL)||'claude-haiku-4-5-20251001';
+    $('#save-settings').onclick=()=>{
+      localStorage.setItem(KEY,$('#key').value.trim());
+      localStorage.setItem(MODEL,$('#model').value);
+      $('#set-msg').textContent='Saved ✓'; setTimeout(()=>$('#set-msg').textContent='',1600);
+    };
+    $('#export').onclick=()=>{
+      const blob=new Blob([JSON.stringify(loadAll(),null,2)],{type:'application/json'});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='mindstash-export.json'; a.click();
+    };
+    $('#wipe').onclick=()=>{ if(confirm('Erase all stashed ideas? This cannot be undone.')){ saveAll([]); renderLibrary(); } };
+
+    // ---- boot ----
+    $('#distill').innerHTML=`${svg('spark')}<span>Distill into ideas</span>`;
+    const hash=(location.hash||'').replace('#','');
+    show(['stash','library','daily','settings'].includes(hash)?hash:'stash');
+    if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(e=>console.warn('SW:',e));
+  </script>
+</body>
+</html>
