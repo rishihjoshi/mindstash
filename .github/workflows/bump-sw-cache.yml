@@ -1,0 +1,40 @@
+name: Bump service-worker cache
+
+# Stamp docs/sw.js CACHE_NAME with the commit SHA so every deploy ships a fresh
+# cache and clients never get stuck on a stale app shell. Commits made with the
+# built-in GITHUB_TOKEN do not trigger workflows, so this never loops.
+
+on:
+  push:
+    branches: [main]
+    paths: ['docs/**']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bump-sw-cache
+  cancel-in-progress: true
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Stamp cache name with commit SHA
+        run: |
+          sha="${GITHUB_SHA::7}"
+          sed -i -E "s/const CACHE_NAME = '[^']*';/const CACHE_NAME = 'mindstash-${sha}';/" docs/sw.js
+          grep -n "CACHE_NAME" docs/sw.js
+
+      - name: Commit if changed
+        run: |
+          if git diff --quiet; then
+            echo "Cache name already current — nothing to do."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore: bump SW cache to ${GITHUB_SHA::7} [skip ci]"
+          git push
