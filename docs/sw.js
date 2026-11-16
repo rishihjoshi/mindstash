@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mindstash-e186a96'; // bump on any static asset change
+const CACHE_NAME = 'mindstash-91f69ed'; // bump on any static asset change
 const ASSETS = [
   './index.html',
   './extract.js',
