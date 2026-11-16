@@ -170,6 +170,15 @@
     .settings-note{font-size:13px;color:var(--mut);line-height:1.65;margin-top:22px;padding-top:20px;border-top:1px solid var(--line)}
     .settings-note a{color:var(--gold-soft)}
 
+    /* First-run key gate */
+    .keygate{display:flex;gap:13px;align-items:center;background:rgba(212,160,23,.08);border:1px solid rgba(212,160,23,.32);
+      border-radius:14px;padding:14px 15px;margin-bottom:22px}
+    .keygate svg{width:20px;height:20px;stroke:var(--gold);flex-shrink:0}
+    .keygate .kg-txt{flex:1;font-size:12.5px;line-height:1.5;color:var(--fg-2)}
+    .keygate .kg-txt b{color:var(--fg);font-weight:600}
+    .keygate .kg-add{flex-shrink:0;background:var(--gold);color:var(--on-gold);border:none;border-radius:10px;
+      padding:9px 14px;font-size:13px;font-weight:700;font-family:var(--font-sans)}
+
     @media (min-width:481px){body{background:#060504}#app{border-left:1px solid var(--line);border-right:1px solid var(--line)}}
     @media (min-width:900px){body{display:flex;align-items:center;justify-content:center}
       #app{height:min(920px,96vh);border-radius:22px;border:1px solid var(--line);box-shadow:0 40px 120px -40px rgba(0,0,0,.9)}}
@@ -198,6 +207,11 @@
           <div class="eyebrow">Distill</div>
           <h2 class="display" id="stash-h">Turn noise into <i>signal.</i></h2>
           <p class="lede">Paste an article, your notes, or just a topic. Claude breaks it into a handful of ideas worth keeping.</p>
+        </div>
+        <div class="keygate" id="keygate" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="m10.8 12.2 8.2-8.2"/><path d="m17 5 2 2"/><path d="m15 7 2 2"/></svg>
+          <span class="kg-txt"><b>One-time setup.</b> Add your Anthropic API key to start distilling — it stays on this device.</span>
+          <button class="kg-add" id="kg-add">Add key</button>
         </div>
         <label for="src">Source — optional</label>
         <input id="src" placeholder="Atomic Habits — James Clear" autocomplete="off">
@@ -299,11 +313,18 @@
       document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active', v.id==='v-'+view));
       document.querySelectorAll('.bottom-nav button').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
       $('.main-content').scrollTop=0;
+      if(view==='stash') refreshKeyGate();
       if(view==='library') renderLibrary();
       if(view==='daily') renderDaily();
     }
     document.querySelectorAll('.bottom-nav button').forEach(b=>b.onclick=()=>show(b.dataset.view));
     $('#hdr-action').onclick=()=>show('daily');
+
+    // First-run: surface the key gate on Stash until a key is saved.
+    const hasKey = () => !!localStorage.getItem(KEY);
+    function refreshKeyGate(){ $('#keygate').hidden = hasKey(); }
+    function goToKey(){ show('settings'); setTimeout(()=>$('#key').focus(),60); }
+    $('#kg-add').onclick=goToKey;
 
     // ---- Claude call (model reply validated at the extract.js boundary) ----
     async function callWithRetry(fn, max=2){
@@ -366,6 +387,7 @@ Prefer non-obvious, high-signal ideas. If the input is just a topic, generate th
     $('#distill').onclick=async()=>{
       const btn=$('#distill'), text=$('#text').value.trim(), label=$('#src').value.trim();
       $('#stash-err').hidden=true; $('#results').innerHTML='';
+      if(!hasKey()){ goToKey(); return; }      // route first-run users straight to the key field
       if(!text){ $('#text').focus(); return; }
       btn.disabled=true; btn.innerHTML='<span class="spin"></span><span>Distilling…</span>';
       $('#results').innerHTML='<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>';
@@ -426,6 +448,7 @@ Prefer non-obvious, high-signal ideas. If the input is just a topic, generate th
     $('#save-settings').onclick=()=>{
       localStorage.setItem(KEY,$('#key').value.trim());
       localStorage.setItem(MODEL,$('#model').value);
+      refreshKeyGate();
       $('#set-msg').textContent='Saved ✓'; setTimeout(()=>$('#set-msg').textContent='',1600);
     };
     $('#export').onclick=()=>{
